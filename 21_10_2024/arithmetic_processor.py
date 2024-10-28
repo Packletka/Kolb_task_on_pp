@@ -151,6 +151,13 @@ class ArithmeticProcessorUI(QWidget):
 
     self.setLayout(main_layout)
 
+    # Кнопка "Выход"
+    self.exit_button = QPushButton("Выход")
+    self.exit_button.clicked.connect(self.close)  # Подключаем сигнал к методу close()
+    main_layout.addWidget(self.exit_button)
+
+    self.setLayout(main_layout)
+
   def select_input_file(self):
       file_name, _ = QFileDialog.getOpenFileName(self, "Выбрать входной файл", "", "Все файлы (*)")
       if file_name:
