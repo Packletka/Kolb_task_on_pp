@@ -2,6 +2,20 @@ import re
 import json
 import yaml
 from bs4 import BeautifulSoup
+import sys
+
+from PyQt5.QtWidgets import (
+  QApplication,
+  QWidget,
+  QPushButton,
+  QLabel,
+  QLineEdit,
+  QFileDialog,
+  QVBoxLayout,
+  QHBoxLayout,
+  QTextEdit,
+  QMessageBox
+)
 
 class ArithmeticProcessor:
     def __init__(self, input_file, output_file, input_format, output_format):
@@ -87,19 +101,100 @@ class ArithmeticProcessorBuilder:
     def build(self):
         return ArithmeticProcessor(self.input_file, self.output_file, self.input_format, self.output_format)
 
+class ArithmeticProcessorUI(QWidget):
+  def __init__(self):
+    super().__init__()
+    self.setWindowTitle("Арифметический процессор")
 
-def main():
-    # Пример использования паттерна Builder
-    builder = ArithmeticProcessorBuilder()
-    processor = (builder
-                 .set_input_file('input.html')
-                 .set_output_file('output.html')
-                 .set_input_format('text')
-                 .set_output_format('text')
-                 .build())
+    self.input_file_label = QLabel("Входной файл:")
+    self.input_file_edit = QLineEdit()
+    self.input_file_button = QPushButton("Выбрать файл")
+    self.input_file_button.clicked.connect(self.select_input_file)
 
-    processor.run()
+    self.output_file_label = QLabel("Выходной файл:")
+    self.output_file_edit = QLineEdit()
+    self.output_file_button = QPushButton("Выбрать файл")
+    self.output_file_button.clicked.connect(self.select_output_file)
 
+    self.input_content_label = QLabel("Содержимое входного файла:")
+    self.input_content_edit = QTextEdit()
+    self.input_content_edit.setReadOnly(True)
+
+    self.process_button = QPushButton("Обработать")
+    self.process_button.clicked.connect(self.process_content)
+
+    # Вертикальное расположение элементов
+    main_layout = QVBoxLayout()
+
+    # Расположение для input-файла
+    input_file_layout = QHBoxLayout()
+    input_file_layout.addWidget(self.input_file_label)
+    input_file_layout.addWidget(self.input_file_edit)
+    input_file_layout.addWidget(self.input_file_button)
+    main_layout.addLayout(input_file_layout)
+
+    # Расположение для output-файла
+    output_file_layout = QHBoxLayout()
+    output_file_layout.addWidget(self.output_file_label)
+    output_file_layout.addWidget(self.output_file_edit)
+    output_file_layout.addWidget(self.output_file_button)
+    main_layout.addLayout(output_file_layout)
+
+    # Расположение для отображения содержимого файла
+    input_content_layout = QHBoxLayout()
+    input_content_layout.addWidget(self.input_content_label)
+    input_content_layout.addWidget(self.input_content_edit)
+    main_layout.addLayout(input_content_layout)
+
+    # Кнопка "Обработать"
+    main_layout.addWidget(self.process_button)
+
+    self.setLayout(main_layout)
+
+  def select_input_file(self):
+      file_name, _ = QFileDialog.getOpenFileName(self, "Выбрать входной файл", "", "Все файлы (*)")
+      if file_name:
+          self.input_file_edit.setText(file_name)
+          self.load_input_content(file_name)
+
+  def select_output_file(self):
+      file_name, _ = QFileDialog.getSaveFileName(self, "Выбрать выходной файл", "", "Все файлы (*)")
+      if file_name:
+          self.output_file_edit.setText(file_name)
+
+  def load_input_content(self, file_name):
+      try:
+          with open(file_name, 'r') as file:
+              content = file.read()
+              self.input_content_edit.setText(content)
+      except Exception as e:
+          QMessageBox.warning(self, "Ошибка", f"Не удалось открыть файл: {e}")
+
+  def process_content(self):
+      input_file = self.input_file_edit.text()
+      output_file = self.output_file_edit.text()
+
+      if not input_file or not output_file:
+          QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите входной и выходной файлы.")
+          return
+
+      # ... (использовать ArithmeticProcessor для обработки) ...
+
+      try:
+          # Обработка данных и сохранение результата
+          processor = ArithmeticProcessorBuilder()
+          processor = processor.set_input_file(input_file) \
+              .set_output_file(output_file) \
+              .set_input_format('text') \
+              .set_output_format('text') \
+              .build()
+          processor.run()
+          QMessageBox.information(self, "Успех", "Обработка завершена.")
+      except Exception as e:
+          QMessageBox.warning(self, "Ошибка", f"Ошибка во время обработки: {e}")
 
 if __name__ == "__main__":
-    main()
+  app = QApplication(sys.argv)
+  window = ArithmeticProcessorUI()  # Исправленный вызов класса
+  window.show()
+  sys.exit(app.exec_())
