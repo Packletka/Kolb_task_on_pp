@@ -2,7 +2,7 @@ import re
 import json
 import yaml
 import xml.etree.ElementTree as ET
-# import arithmetic_pb2  # Import the generated protobuf classes
+import input_files.arithmetic_pb2 as protobuf
 from bs4 import BeautifulSoup
 import sys
 
@@ -42,7 +42,7 @@ class ArithmeticProcessor:
                 return self.read_protobuf(file)
 
     def read_protobuf(self, file):
-        data = arithmetic_pb2.ArithmeticData()
+        data = protobuf.ArithmeticData()
         data.ParseFromString(file.read())
         return data.content
 
@@ -74,7 +74,7 @@ class ArithmeticProcessor:
                 self.write_protobuf(content, file)
 
     def write_protobuf(self, content, file):
-        data = arithmetic_pb2.ArithmeticData()
+        data = protobuf.ArithmeticData()
         data.content = content
         file.write(data.SerializeToString())
 

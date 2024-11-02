@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package calculations;
+
+operations {
+ operations {
+  left_operand: 3
+  operator: "+"
+  right_operand: 4
+ }
+ operations {
+  left_operand: 15
+  operator: "-"
+  right_operand: 9
+ }
+ operations {
+  left_operand: 6
+  operator: "*"
+  right_operand: 7
+ }
+ operations {
+  left_operand: 10
+  operator: "/"
+  right_operand: 2
+ }
+}
