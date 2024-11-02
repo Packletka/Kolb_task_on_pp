@@ -144,7 +144,7 @@ class ArithmeticProcessorBuilder:
 class ArithmeticProcessorUI(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Арифметический процессор")
+        self.setWindowTitle("UI для сквозной задачи")
 
         # Вопрос о действиях над входным файлом
         self.action_label = QLabel("Производить ли действия над input-файлом?")
@@ -243,6 +243,13 @@ class ArithmeticProcessorUI(QWidget):
         options_dialog.exec_()
 
     def handle_action_options(self, dialog):
+        if not (self.encrypt_radio.isChecked() or
+                self.archive_radio.isChecked() or
+                self.encrypt_then_archive_radio.isChecked() or
+                self.archive_then_encrypt_radio.isChecked()):
+            QMessageBox.warning(self, "Предупреждение", "Пожалуйста, выберите хотя бы одну опцию.")
+            return
+
         if self.encrypt_radio.isChecked():
             # Логика для зашифровки
             QMessageBox.information(self, "Выбор", "Выбрана опция: Зашифровать")
