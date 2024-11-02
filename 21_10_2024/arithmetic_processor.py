@@ -16,8 +16,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QTextEdit,
-    QMessageBox
+    QMessageBox,
+    QDialog,
+    QRadioButton
 )
+
 
 class ArithmeticProcessor:
     def __init__(self, input_file, output_file, input_format, output_format):
@@ -110,6 +113,7 @@ class ArithmeticProcessor:
         processed_content = self.process_content(content)
         self.write_to_file(processed_content)
 
+
 class ArithmeticProcessorBuilder:
     def __init__(self):
         self.input_file = None
@@ -136,11 +140,19 @@ class ArithmeticProcessorBuilder:
     def build(self):
         return ArithmeticProcessor(self.input_file, self.output_file, self.input_format, self.output_format)
 
+
 class ArithmeticProcessorUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Арифметический процессор")
 
+        # Вопрос о действиях над входным файлом
+        self.action_label = QLabel("Производить ли действия над input-файлом?")
+        self.radio_yes = QRadioButton("Да")
+        self.radio_no = QRadioButton("Нет")
+        self.radio_no.setChecked(True)
+
+        # Кнопки для выбора файла
         self.input_file_label = QLabel("Входной файл:")
         self.input_file_edit = QLineEdit()
         self.input_file_button = QPushButton("Выбрать файл")
@@ -160,6 +172,11 @@ class ArithmeticProcessorUI(QWidget):
 
         # Вертикальное расположение элементов
         main_layout = QVBoxLayout()
+
+        # Вопрос о действиях
+        main_layout.addWidget(self.action_label)
+        main_layout.addWidget(self.radio_yes)
+        main_layout.addWidget(self.radio_no)
 
         # Расположение для input-файла
         input_file_layout = QHBoxLayout()
@@ -194,15 +211,59 @@ class ArithmeticProcessorUI(QWidget):
         self.setLayout(main_layout)
 
     def select_input_file(self):
+        # Проверяем, выбраны ли действия
+        if self.radio_yes.isChecked():
+            self.show_action_options()
+        else:
+            self.load_input_file()
+
+    def show_action_options(self):
+        options_dialog = QDialog(self)
+        options_dialog.setWindowTitle("Выбор опций")
+
+        layout = QVBoxLayout()
+        question_label = QLabel("Выберите опцию:")
+
+        self.encrypt_radio = QRadioButton("Зашифровать")
+        self.archive_radio = QRadioButton("Архивировать")
+        self.encrypt_then_archive_radio = QRadioButton("Зашифровать, потом Архивировать")
+        self.archive_then_encrypt_radio = QRadioButton("Архивировать, потом Зашифровать")
+
+        layout.addWidget(question_label)
+        layout.addWidget(self.encrypt_radio)
+        layout.addWidget(self.archive_radio)
+        layout.addWidget(self.encrypt_then_archive_radio)
+        layout.addWidget(self.archive_then_encrypt_radio)
+
+        confirm_button = QPushButton("Подтвердить")
+        confirm_button.clicked.connect(lambda: self.handle_action_options(options_dialog))
+        layout.addWidget(confirm_button)
+
+        options_dialog.setLayout(layout)
+        options_dialog.exec_()
+
+    def handle_action_options(self, dialog):
+        if self.encrypt_radio.isChecked():
+            # Логика для зашифровки
+            QMessageBox.information(self, "Выбор", "Выбрана опция: Зашифровать")
+        elif self.archive_radio.isChecked():
+            # Логика для архивирования
+            QMessageBox.information(self, "Выбор", "Выбрана опция: Архивировать")
+        elif self.encrypt_then_archive_radio.isChecked():
+            # Логика для зашифровки, потом архивирования
+            QMessageBox.information(self, "Выбор", "Выбрана опция: Зашифровать, потом Архивировать")
+        elif self.archive_then_encrypt_radio.isChecked():
+            # Логика для архивирования, потом зашифровки
+            QMessageBox.information(self, "Выбор", "Выбрана опция: Архивировать, потом Зашифровать")
+
+        dialog.accept()
+        self.load_input_file()
+
+    def load_input_file(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Выбрать входной файл", "", "Все файлы (*)")
         if file_name:
             self.input_file_edit.setText(file_name)
             self.load_input_content(file_name)
-
-    def select_output_file(self):
-        file_name, _ = QFileDialog.getSaveFileName(self, "Выбрать выходной файл", "", "Все файлы (*)")
-        if file_name:
-            self.output_file_edit.setText(file_name)
 
     def load_input_content(self, file_name):
         try:
@@ -211,6 +272,11 @@ class ArithmeticProcessorUI(QWidget):
                 self.input_content_edit.setText(content.decode('utf-8', 'ignore'))  # Handle decoding errors
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Не удалось открыть файл: {e}")
+
+    def select_output_file(self):
+        file_name, _ = QFileDialog.getSaveFileName(self, "Выбрать выходной файл", "", "Все файлы (*)")
+        if file_name:
+            self.output_file_edit.setText(file_name)
 
     def process_content(self):
         input_file = self.input_file_edit.text()
@@ -232,6 +298,7 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.information(self, "Успех", "Обработка завершена.")
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Ошибка во время обработки: {e}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
