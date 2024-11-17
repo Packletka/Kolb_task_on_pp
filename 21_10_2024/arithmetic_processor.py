@@ -198,19 +198,20 @@ class ArithmeticProcessorUI(QWidget):
         self.input_content_edit = QTextEdit()
         self.input_content_edit.setReadOnly(True)
 
+        self.output_content_edit = QTextEdit()
+        self.output_content_edit.setReadOnly(True)
+
         self.process_button = QPushButton("Обработать")
         self.reverse_process_button = QPushButton("Обратное действие -> Обработать")
         self.process_button.hide()
         self.reverse_process_button.hide()
 
-        # Connect the process button to the new method
         self.process_button.clicked.connect(self.process_content)
         self.reverse_process_button.clicked.connect(self.reverse_action)
         self.exit_button = QPushButton("Выход")
         self.exit_button.clicked.connect(self.close)
         self.layout_ui_elements()
 
-        # Center the window on the screen
         self.center()
 
     def center(self):
@@ -245,6 +246,11 @@ class ArithmeticProcessorUI(QWidget):
         input_content_layout.addWidget(QLabel("Содержимое входного файла:"))
         input_content_layout.addWidget(self.input_content_edit)
         main_layout.addLayout(input_content_layout)
+
+        output_content_layout = QHBoxLayout()
+        output_content_layout.addWidget(QLabel("Содержимое выходного файла:"))
+        output_content_layout.addWidget(self.output_content_edit)
+        main_layout.addLayout(output_content_layout)
 
         main_layout.addWidget(self.reverse_process_button)
         main_layout.addWidget(self.process_button)
@@ -383,7 +389,7 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите входной файл и выходной файл.")
             return
 
-        # Determine the input format based on file extension
+        # Определить формат входного файла на основе его расширения
         if input_file.endswith('.json'):
             input_format = 'json'
         elif input_file.endswith('.yaml'):
@@ -404,12 +410,19 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.warning(self, "Ошибка", "Неверный формат входного файла.")
             return
 
-        # Create an instance of the ArithmeticProcessor
-        processor = ArithmeticProcessor(input_file, output_file, input_format, 'text')  # Set output format as needed
+        # Создание экземпляра ArithmeticProcessor
+        processor = ArithmeticProcessor(input_file, output_file, input_format,
+                                        'text')  # Установите формат вывода по мере необходимости
 
         try:
-            processor.run()  # This will read, process, and write the output
+            processor.run()  # Это будет читать, обрабатывать и записывать вывод
             QMessageBox.information(self, "Успех", "Файл успешно обработан.")
+
+            # Загрузите содержимое выходного файла и отобразите его
+            with open(output_file, 'r', encoding='utf-8') as file:  # Убедитесь, что файл текстовый
+                output_content = file.read()
+                self.output_content_edit.setText(output_content)
+
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Произошла ошибка при обработке файла: {e}")
 
