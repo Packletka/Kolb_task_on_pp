@@ -8,6 +8,7 @@ import os
 import sys
 import zipfile
 from cryptography.fernet import Fernet
+import shutil
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -46,7 +47,8 @@ class ArithmeticProcessor:
             elif self.input_format == 'protobuf':
                 return self.read_protobuf(file)
 
-    def read_protobuf(self, file):
+    @staticmethod
+    def read_protobuf(file):
         data = protobuf.ArithmeticData()
         data.ParseFromString(file.read())
         return data.content
@@ -77,12 +79,14 @@ class ArithmeticProcessor:
             elif self.output_format == 'protobuf':
                 self.write_protobuf(content, file)
 
-    def write_protobuf(self, content, file):
+    @staticmethod
+    def write_protobuf(content, file):
         data = protobuf.ArithmeticData()
         data.content = content
         file.write(data.SerializeToString())
 
-    def write_xml(self, content, file):
+    @staticmethod
+    def write_xml(content, file):
         root = ET.Element("calculations")
 
         for result in content:
@@ -131,7 +135,8 @@ class ArithmeticProcessor:
 
         return re.sub(pattern, replacement, text)
 
-    def evaluate_expression(self, expression):
+    @staticmethod
+    def evaluate_expression(expression):
         try:
             result = eval(expression)  # Будьте осторожны с eval в реальных приложениях
             return result
@@ -177,23 +182,6 @@ class ArithmeticProcessorUI(QWidget):
         self.setWindowTitle("UI для сквозной задачи")
 
         # UI Elements Initialization
-        self.init_ui_elements()
-        self.layout_ui_elements()
-
-        # Center the window on the screen
-        self.center()
-
-    def center(self):
-        # Get the screen geometry
-        screen = QDesktopWidget().screenGeometry()
-        # Get the window geometry
-        size = self.geometry()
-        # Calculate the new position
-        x = (screen.width() - size.width()) // 2
-        y = (screen.height() - size.height()) // 2
-        self.move(x, y)  # Move the window to the center
-
-    def init_ui_elements(self):
         self.action_label = QLabel("Производить ли действия над input-файлом?")
         self.radio_yes = QRadioButton("Да")
         self.radio_no = QRadioButton("Нет")
@@ -220,6 +208,20 @@ class ArithmeticProcessorUI(QWidget):
         self.reverse_process_button.clicked.connect(self.reverse_action)
         self.exit_button = QPushButton("Выход")
         self.exit_button.clicked.connect(self.close)
+        self.layout_ui_elements()
+
+        # Center the window on the screen
+        self.center()
+
+    def center(self):
+        # Get the screen geometry
+        screen = QDesktopWidget().screenGeometry()
+        # Get the window geometry
+        size = self.geometry()
+        # Calculate the new position
+        x = (screen.width() - size.width()) // 2
+        y = (screen.height() - size.height()) // 2
+        self.move(x, y)  # Move the window to the center
 
     def layout_ui_elements(self):
         main_layout = QVBoxLayout()
@@ -270,7 +272,10 @@ class ArithmeticProcessorUI(QWidget):
         output_file_selected = bool(self.output_file_edit.text())
 
         if input_file_selected and output_file_selected:
-            if self.input_file_edit.text().endswith(('.encrypted', '.decrypted')):
+            if self.input_file_edit.text().endswith('.encrypted'):
+                self.reverse_process_button.show()
+                self.process_button.hide()
+            elif self.input_file_edit.text().endswith('.zip'):
                 self.reverse_process_button.show()
                 self.process_button.hide()
             else:
@@ -335,7 +340,8 @@ class ArithmeticProcessorUI(QWidget):
 
         dialog.accept()
 
-    def encrypt_file(self, input_file):
+    @staticmethod
+    def encrypt_file(input_file):
         key = Fernet.generate_key()
         cipher = Fernet(key)
 
@@ -353,7 +359,8 @@ class ArithmeticProcessorUI(QWidget):
 
         return encrypted_file_name
 
-    def archive_file(self, input_file):
+    @staticmethod
+    def archive_file(input_file):
         archive_file_name = input_file + '.zip'
         with zipfile.ZipFile(archive_file_name, 'w') as zipf:
             zipf.write(input_file, os.path.basename(input_file))
@@ -376,7 +383,7 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите входной файл и выходной файл.")
             return
 
-        # Determine the input format based on file extension (you may want to improve this logic)
+        # Determine the input format based on file extension
         if input_file.endswith('.json'):
             input_format = 'json'
         elif input_file.endswith('.yaml'):
@@ -388,8 +395,10 @@ class ArithmeticProcessorUI(QWidget):
         elif input_file.endswith('.txt'):
             input_format = 'text'
         elif input_file.endswith('.encrypted'):
-            # Handle encrypted files appropriately if needed
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, расшифруйте файл перед обработкой.")
+            return
+        elif input_file.endswith('.zip'):
+            QMessageBox.warning(self, "Ошибка", "Пожалуйста, извлеките файлы из архива перед обработкой.")
             return
         else:
             QMessageBox.warning(self, "Ошибка", "Неверный формат входного файла.")
@@ -406,6 +415,8 @@ class ArithmeticProcessorUI(QWidget):
 
     def reverse_action(self):
         input_file = self.input_file_edit.text()
+        output_file = self.output_file_edit.text()
+
         if not input_file:
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите файл для обратного действия.")
             return
@@ -413,22 +424,34 @@ class ArithmeticProcessorUI(QWidget):
         try:
             if input_file.endswith('.encrypted'):
                 decrypted_file = self.decrypt_file(input_file)
-                if decrypted_file:  # Проверяем, что расшифровка прошла успешно
+                if decrypted_file:
                     self.input_file_edit.setText(decrypted_file)
                     QMessageBox.information(self, "Успех", "Файл успешно расшифрован.")
 
-                    # Process the decrypted content to evaluate expressions
-                    output_file = self.output_file_edit.text() or decrypted_file.replace('.encrypted', '.decrypted')
-                    processor = ArithmeticProcessor(decrypted_file, output_file, 'text',
-                                                    'text')  # Assuming decrypted files are text
-                    processor.run()  # This will read, evaluate, and write output
+                    # Обрабатываем расшифрованный файл
+                    processor = ArithmeticProcessor(decrypted_file, output_file, 'text', 'text')
+                    processor.run()
                     QMessageBox.information(self, "Успех", "Выражения успешно вычислены и записаны в выходной файл.")
 
             elif input_file.endswith('.zip'):
-                extracted_files = self.extract_file(input_file)
-                for file in extracted_files:
-                    self.process_content(file)  # Обрабатываем каждый извлечённый файл
-                QMessageBox.information(self, "Успех", "Файлы успешно извлечены и обработаны.")
+                temp_dir = os.path.join(os.path.dirname(input_file), 'temp_extracted')
+                os.makedirs(temp_dir, exist_ok=True)
+
+                with zipfile.ZipFile(input_file, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)  # Извлекаем все файлы во временную директорию
+
+                # Обрабатываем каждый извлечённый файл
+                for file_info in zip_ref.infolist():
+                    extracted_file = os.path.join(temp_dir, file_info.filename)
+                    if os.path.isfile(extracted_file):  # Проверяем, что файл существует
+                        processor = ArithmeticProcessor(extracted_file, output_file, 'text', 'text')
+                        processor.run()  # Читаем, вычисляем и записываем вывод
+                    else:
+                        QMessageBox.warning(self, "Ошибка", f"Файл {extracted_file} не найден.")
+
+                QMessageBox.information(self, "Успех", "Файлы успешно обработаны.")
+                # Удаление временной директории после обработки (по желанию)
+                # shutil.rmtree(temp_dir)
 
             else:
                 QMessageBox.warning(self, "Ошибка", "Файл не является зашифрованным или архивированным.")
@@ -458,18 +481,6 @@ class ArithmeticProcessorUI(QWidget):
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Ошибка при расшифровке файла: {e}")
             return None
-
-    def extract_file(self, input_file):
-        extracted_files = []
-        try:
-            output_dir = QFileDialog.getExistingDirectory(self, "Выбрать папку для извлечения")
-            if output_dir:
-                with zipfile.ZipFile(input_file, 'r') as zip_ref:
-                    zip_ref.extractall(output_dir)
-                    extracted_files = zip_ref.namelist()  # Get list of extracted files
-                return [os.path.join(output_dir, f) for f in extracted_files]
-        except Exception as e:
-            QMessageBox.warning(self, "Ошибка", f"Ошибка при извлечении файла: {e}")
 
 
 if __name__ == "__main__":
