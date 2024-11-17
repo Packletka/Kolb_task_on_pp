@@ -2,7 +2,7 @@ import re
 import json
 import yaml
 import xml.etree.ElementTree as ET
-import input_files.arithmetic_pb2 as protobuf
+from input_files import arithmetic_pb2 as protobuf
 from bs4 import BeautifulSoup
 import os
 import sys
@@ -54,10 +54,7 @@ class ArithmeticProcessor:
     def read_xml(self, file):
         try:
             content = file.read()
-            print("Содержимое файла XML:", content.decode('utf-8'))  # Логирование содержимого
-            tree = ET.ElementTree(ET.fromstring(content.decode('utf-8')))
-            root = tree.getroot()
-            return self.xml_to_text(root)
+            return self.xml_to_text(ET.fromstring(content.decode('utf-8')))
         except ET.ParseError as e:
             raise ValueError(f"Ошибка парсинга XML: {e}")
 
@@ -419,13 +416,23 @@ class ArithmeticProcessorUI(QWidget):
                 if decrypted_file:  # Проверяем, что расшифровка прошла успешно
                     self.input_file_edit.setText(decrypted_file)
                     QMessageBox.information(self, "Успех", "Файл успешно расшифрован.")
+
+                    # Process the decrypted content to evaluate expressions
+                    output_file = self.output_file_edit.text() or decrypted_file.replace('.encrypted', '.decrypted')
+                    processor = ArithmeticProcessor(decrypted_file, output_file, 'text',
+                                                    'text')  # Assuming decrypted files are text
+                    processor.run()  # This will read, evaluate, and write output
+                    QMessageBox.information(self, "Успех", "Выражения успешно вычислены и записаны в выходной файл.")
+
             elif input_file.endswith('.zip'):
                 extracted_files = self.extract_file(input_file)
                 for file in extracted_files:
                     self.process_content(file)  # Обрабатываем каждый извлечённый файл
                 QMessageBox.information(self, "Успех", "Файлы успешно извлечены и обработаны.")
+
             else:
                 QMessageBox.warning(self, "Ошибка", "Файл не является зашифрованным или архивированным.")
+
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Ошибка при выполнении обратного действия: {e}")
 

@@ -1,6 +1,15 @@
-
-     
-         7 
-         6 
-         42 
-         5.0
+<?xml version="1.0" encoding="UTF-8"?>
+<calculations>
+    <calculation>
+        <expression>7</expression>
+    </calculation>
+    <calculation>
+        <expression>6</expression>
+    </calculation>
+    <calculation>
+        <expression>42</expression>
+    </calculation>
+    <calculation>
+        <expression>5.0</expression>
+    </calculation>
+</calculations>

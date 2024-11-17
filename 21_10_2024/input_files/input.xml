@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <calculations>
     <calculation>
-        <expression>2 + 2</expression>
+        <expression>3 + 4</expression>
     </calculation>
     <calculation>
-        <expression>3 * 5</expression>
+        <expression>15 - 9</expression>
+    </calculation>
+    <calculation>
+        <expression>6 * 7</expression>
+    </calculation>
+    <calculation>
+        <expression>10 / 2</expression>
     </calculation>
 </calculations>
