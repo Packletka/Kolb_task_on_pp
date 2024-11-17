@@ -4,8 +4,8 @@ import yaml
 import xml.etree.ElementTree as ET
 import input_files.arithmetic_pb2 as protobuf
 from bs4 import BeautifulSoup
-import sys
 import os
+import sys
 import zipfile
 from cryptography.fernet import Fernet
 
@@ -52,9 +52,14 @@ class ArithmeticProcessor:
         return data.content
 
     def read_xml(self, file):
-        tree = ET.parse(file)
-        root = tree.getroot()
-        return self.xml_to_text(root)
+        try:
+            content = file.read()
+            print("Содержимое файла XML:", content.decode('utf-8'))  # Логирование содержимого
+            tree = ET.ElementTree(ET.fromstring(content.decode('utf-8')))
+            root = tree.getroot()
+            return self.xml_to_text(root)
+        except ET.ParseError as e:
+            raise ValueError(f"Ошибка парсинга XML: {e}")
 
     def xml_to_text(self, element):
         text = [element.text or ""]
@@ -81,30 +86,60 @@ class ArithmeticProcessor:
         file.write(data.SerializeToString())
 
     def write_xml(self, content, file):
-        root = ET.Element("ProcessedContent")
-        ET.SubElement(root, "Result").text = content
+        root = ET.Element("calculations")
+
+        for result in content:
+            calculation_elem = ET.SubElement(root, "calculation")
+            expression_elem = ET.SubElement(calculation_elem, "expression")
+            expression_elem.text = str(result)  # Преобразуйте результат в строку
+
         tree = ET.ElementTree(root)
-        tree.write(file)
+        tree.write(file, encoding='utf-8', xml_declaration=True)
 
     def process_content(self, content):
-        if self.input_format == 'html':
+        if self.input_format in ('json', 'yaml'):
+            # Преобразовать содержимое в строку
+            if self.input_format == 'json':
+                content = json.dumps(content)
+            elif self.input_format == 'yaml':
+                content = yaml.dump(content)
+        elif self.input_format == 'html':
             soup = BeautifulSoup(content, 'html.parser')
-            text = soup.get_text()
-            processed_text = self.process_text(text)
             for elem in soup.find_all(string=True):
                 if elem.strip():
                     elem.replace_with(self.process_text(elem))
             return str(soup)
+        elif self.input_format == 'xml':
+            try:
+                root = ET.fromstring(content)
+                results = []
+                for calculation in root.findall('calculation'):
+                    expression = calculation.find('expression').text
+                    result = self.evaluate_expression(expression.strip())
+                    results.append(result)
+                return results
+            except ET.ParseError as e:
+                raise ValueError(f"Ошибка при обработке XML: {e}")
         return self.process_text(content)
 
     def process_text(self, text):
+        if not isinstance(text, str):
+            return text  # Или вернуть пустую строку, если это больше подходит
         pattern = r'\d+\s*[\+\-\*\/]\s*\d+'
-        return re.sub(pattern, self.evaluate_expression, text)
 
-    def evaluate_expression(self, match):
-        expression = match.group()
-        result = eval(expression)
-        return str(result)
+        # Заменяем совпадения на их результаты
+        def replacement(match):
+            expression = match.group(0)  # Извлекаем строку совпадения
+            return str(self.evaluate_expression(expression))  # Возвращаем результат в виде строки
+
+        return re.sub(pattern, replacement, text)
+
+    def evaluate_expression(self, expression):
+        try:
+            result = eval(expression)  # Будьте осторожны с eval в реальных приложениях
+            return result
+        except Exception as e:
+            raise ValueError(f"Ошибка при вычислении выражения: {expression}. Ошибка: {e}")
 
     def run(self):
         content = self.read_from_file()
@@ -331,6 +366,7 @@ class ArithmeticProcessorUI(QWidget):
         try:
             with open(file_name, 'rb') as file:
                 content = file.read()
+                # Попробуйте декодировать содержимое как UTF-8
                 self.input_content_edit.setText(content.decode('utf-8', 'ignore'))
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Не удалось открыть файл: {e}")
