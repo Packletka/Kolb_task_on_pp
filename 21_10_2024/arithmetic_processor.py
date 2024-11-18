@@ -446,6 +446,11 @@ class ArithmeticProcessorUI(QWidget):
                     processor.run()
                     QMessageBox.information(self, "Успех", "Выражения успешно вычислены и записаны в выходной файл.")
 
+                    # Загружаем содержимое выходного файла и отображаем его
+                    with open(output_file, 'r', encoding='utf-8') as file:
+                        output_content = file.read()
+                        self.output_content_edit.setText(output_content)
+
             elif input_file.endswith('.zip'):
                 temp_dir = os.path.join(os.path.dirname(input_file), 'temp_extracted')
                 os.makedirs(temp_dir, exist_ok=True)
@@ -459,10 +464,14 @@ class ArithmeticProcessorUI(QWidget):
                     if os.path.isfile(extracted_file):  # Проверяем, что файл существует
                         processor = ArithmeticProcessor(extracted_file, output_file, 'text', 'text')
                         processor.run()  # Читаем, вычисляем и записываем вывод
-                    else:
-                        QMessageBox.warning(self, "Ошибка", f"Файл {extracted_file} не найден.")
 
                 QMessageBox.information(self, "Успех", "Файлы успешно обработаны.")
+
+                # Загружаем содержимое выходного файла и отображаем его
+                with open(output_file, 'r', encoding='utf-8') as file:
+                    output_content = file.read()
+                    self.output_content_edit.setText(output_content)
+
                 # Удаление временной директории после обработки (по желанию)
                 # shutil.rmtree(temp_dir)
 
