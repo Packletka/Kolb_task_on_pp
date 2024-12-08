@@ -2,13 +2,11 @@ import re
 import json
 import yaml
 import xml.etree.ElementTree as ET
-from input_files import arithmetic_pb2 as protobuf
 from bs4 import BeautifulSoup
 import os
 import sys
 import zipfile
 from cryptography.fernet import Fernet
-import shutil
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -44,14 +42,6 @@ class ArithmeticProcessor:
                 return file.read().decode('utf-8')
             elif self.input_format == 'xml':
                 return self.read_xml(file)
-            elif self.input_format == 'protobuf':
-                return self.read_protobuf(file)
-
-    @staticmethod
-    def read_protobuf(file):
-        data = protobuf.ArithmeticData()
-        data.ParseFromString(file.read())
-        return data.content
 
     def read_xml(self, file):
         try:
@@ -76,14 +66,6 @@ class ArithmeticProcessor:
                 file.write(content.encode('utf-8'))
             elif self.output_format == 'xml':
                 self.write_xml(content, file)
-            elif self.output_format == 'protobuf':
-                self.write_protobuf(content, file)
-
-    @staticmethod
-    def write_protobuf(content, file):
-        data = protobuf.ArithmeticData()
-        data.content = content
-        file.write(data.SerializeToString())
 
     @staticmethod
     def write_xml(content, file):
@@ -92,7 +74,7 @@ class ArithmeticProcessor:
         for result in content:
             calculation_elem = ET.SubElement(root, "calculation")
             expression_elem = ET.SubElement(calculation_elem, "expression")
-            expression_elem.text = str(result)  # Преобразуйте результат в строку
+            expression_elem.text = str(result)
 
         tree = ET.ElementTree(root)
         tree.write(file, encoding='utf-8', xml_declaration=True)
@@ -125,20 +107,19 @@ class ArithmeticProcessor:
 
     def process_text(self, text):
         if not isinstance(text, str):
-            return text  # Или вернуть пустую строку, если это больше подходит
+            return text
         pattern = r'\d+\s*[\+\-\*\/]\s*\d+'
 
-        # Заменяем совпадения на их результаты
         def replacement(match):
-            expression = match.group(0)  # Извлекаем строку совпадения
-            return str(self.evaluate_expression(expression))  # Возвращаем результат в виде строки
+            expression = match.group(0)
+            return str(self.evaluate_expression(expression))
 
         return re.sub(pattern, replacement, text)
 
     @staticmethod
     def evaluate_expression(expression):
         try:
-            result = eval(expression)  # Будьте осторожны с eval в реальных приложениях
+            result = eval(expression)
             return result
         except Exception as e:
             raise ValueError(f"Ошибка при вычислении выражения: {expression}. Ошибка: {e}")
@@ -215,14 +196,11 @@ class ArithmeticProcessorUI(QWidget):
         self.center()
 
     def center(self):
-        # Get the screen geometry
         screen = QDesktopWidget().screenGeometry()
-        # Get the window geometry
         size = self.geometry()
-        # Calculate the new position
         x = (screen.width() - size.width()) // 2
         y = (screen.height() - size.height()) // 2
-        self.move(x, y)  # Move the window to the center
+        self.move(x, y)
 
     def layout_ui_elements(self):
         main_layout = QVBoxLayout()
@@ -376,7 +354,6 @@ class ArithmeticProcessorUI(QWidget):
         try:
             with open(file_name, 'rb') as file:
                 content = file.read()
-                # Попробуйте декодировать содержимое как UTF-8
                 self.input_content_edit.setText(content.decode('utf-8', 'ignore'))
         except Exception as e:
             QMessageBox.warning(self, "Ошибка", f"Не удалось открыть файл: {e}")
@@ -389,7 +366,6 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите входной файл и выходной файл.")
             return
 
-        # Определить формат входного файла на основе его расширения
         if input_file.endswith('.json'):
             input_format = 'json'
         elif input_file.endswith('.yaml'):
@@ -412,14 +388,13 @@ class ArithmeticProcessorUI(QWidget):
 
         # Создание экземпляра ArithmeticProcessor
         processor = ArithmeticProcessor(input_file, output_file, input_format,
-                                        'text')  # Установите формат вывода по мере необходимости
+                                        'text')
 
         try:
-            processor.run()  # Это будет читать, обрабатывать и записывать вывод
+            processor.run()
             QMessageBox.information(self, "Успех", "Файл успешно обработан.")
 
-            # Загрузите содержимое выходного файла и отобразите его
-            with open(output_file, 'r', encoding='utf-8') as file:  # Убедитесь, что файл текстовый
+            with open(output_file, 'r', encoding='utf-8') as file:
                 output_content = file.read()
                 self.output_content_edit.setText(output_content)
 
@@ -441,12 +416,10 @@ class ArithmeticProcessorUI(QWidget):
                     self.input_file_edit.setText(decrypted_file)
                     QMessageBox.information(self, "Успех", "Файл успешно расшифрован.")
 
-                    # Обрабатываем расшифрованный файл
                     processor = ArithmeticProcessor(decrypted_file, output_file, 'text', 'text')
                     processor.run()
                     QMessageBox.information(self, "Успех", "Выражения успешно вычислены и записаны в выходной файл.")
 
-                    # Загружаем содержимое выходного файла и отображаем его
                     with open(output_file, 'r', encoding='utf-8') as file:
                         output_content = file.read()
                         self.output_content_edit.setText(output_content)
@@ -456,24 +429,20 @@ class ArithmeticProcessorUI(QWidget):
                 os.makedirs(temp_dir, exist_ok=True)
 
                 with zipfile.ZipFile(input_file, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)  # Извлекаем все файлы во временную директорию
+                    zip_ref.extractall(temp_dir)
 
                 # Обрабатываем каждый извлечённый файл
                 for file_info in zip_ref.infolist():
                     extracted_file = os.path.join(temp_dir, file_info.filename)
-                    if os.path.isfile(extracted_file):  # Проверяем, что файл существует
+                    if os.path.isfile(extracted_file):
                         processor = ArithmeticProcessor(extracted_file, output_file, 'text', 'text')
-                        processor.run()  # Читаем, вычисляем и записываем вывод
+                        processor.run()
 
                 QMessageBox.information(self, "Успех", "Файлы успешно обработаны.")
 
-                # Загружаем содержимое выходного файла и отображаем его
                 with open(output_file, 'r', encoding='utf-8') as file:
                     output_content = file.read()
                     self.output_content_edit.setText(output_content)
-
-                # Удаление временной директории после обработки (по желанию)
-                # shutil.rmtree(temp_dir)
 
             else:
                 QMessageBox.warning(self, "Ошибка", "Файл не является зашифрованным или архивированным.")
@@ -483,7 +452,6 @@ class ArithmeticProcessorUI(QWidget):
 
     def decrypt_file(self, input_file):
         try:
-            # Загрузка ключа из файла
             key_file_name = input_file.replace('.encrypted', '.key')
             with open(key_file_name, 'rb') as key_file:
                 key = key_file.read()
