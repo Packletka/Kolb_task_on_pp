@@ -2,7 +2,6 @@ import re
 import json
 import yaml
 import xml.etree.ElementTree as ET
-from input_files import arithmetic_pb2 as protobuf
 from bs4 import BeautifulSoup
 import os
 import sys
@@ -44,14 +43,6 @@ class ArithmeticProcessor:
                 return file.read().decode('utf-8')
             elif self.input_format == 'xml':
                 return self.read_xml(file)
-            elif self.input_format == 'protobuf':
-                return self.read_protobuf(file)
-
-    @staticmethod
-    def read_protobuf(file):
-        data = protobuf.ArithmeticData()
-        data.ParseFromString(file.read())
-        return data.content
 
     def read_xml(self, file):
         try:
@@ -76,14 +67,6 @@ class ArithmeticProcessor:
                 file.write(content.encode('utf-8'))
             elif self.output_format == 'xml':
                 self.write_xml(content, file)
-            elif self.output_format == 'protobuf':
-                self.write_protobuf(content, file)
-
-    @staticmethod
-    def write_protobuf(content, file):
-        data = protobuf.ArithmeticData()
-        data.content = content
-        file.write(data.SerializeToString())
 
     @staticmethod
     def write_xml(content, file):
