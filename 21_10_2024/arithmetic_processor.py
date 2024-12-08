@@ -81,7 +81,6 @@ class ArithmeticProcessor:
 
     def process_content(self, content):
         if self.input_format in ('json', 'yaml'):
-            # Преобразовать содержимое в строку
             if self.input_format == 'json':
                 content = json.dumps(content)
             elif self.input_format == 'yaml':
@@ -162,7 +161,6 @@ class ArithmeticProcessorUI(QWidget):
         super().__init__()
         self.setWindowTitle("UI для сквозной задачи")
 
-        # UI Elements Initialization
         self.action_label = QLabel("Производить ли действия над input-файлом?")
         self.radio_yes = QRadioButton("Да")
         self.radio_no = QRadioButton("Нет")
@@ -214,16 +212,16 @@ class ArithmeticProcessorUI(QWidget):
         input_file_layout.addWidget(self.input_file_button)
         main_layout.addLayout(input_file_layout)
 
+        input_content_layout = QHBoxLayout()
+        input_content_layout.addWidget(QLabel("Содержимое входного файла:"))
+        input_content_layout.addWidget(self.input_content_edit)
+        main_layout.addLayout(input_content_layout)
+
         output_file_layout = QHBoxLayout()
         output_file_layout.addWidget(QLabel("Выходной файл:"))
         output_file_layout.addWidget(self.output_file_edit)
         output_file_layout.addWidget(self.output_file_button)
         main_layout.addLayout(output_file_layout)
-
-        input_content_layout = QHBoxLayout()
-        input_content_layout.addWidget(QLabel("Содержимое входного файла:"))
-        input_content_layout.addWidget(self.input_content_edit)
-        main_layout.addLayout(input_content_layout)
 
         output_content_layout = QHBoxLayout()
         output_content_layout.addWidget(QLabel("Содержимое выходного файла:"))
@@ -244,6 +242,9 @@ class ArithmeticProcessorUI(QWidget):
             self.update_process_buttons()
             if self.radio_yes.isChecked():
                 self.show_action_options(file_name)
+
+            self.radio_yes.setEnabled(False)
+            self.radio_no.setEnabled(False)
 
     def select_output_file(self):
         file_name, _ = QFileDialog.getSaveFileName(self, "Выбрать выходной файл", "", "Все файлы (*)")
@@ -329,7 +330,6 @@ class ArithmeticProcessorUI(QWidget):
         key = Fernet.generate_key()
         cipher = Fernet(key)
 
-        # Сохранение ключа в файл
         key_file_name = input_file + '.key'
         with open(key_file_name, 'wb') as key_file:
             key_file.write(key)
@@ -386,7 +386,6 @@ class ArithmeticProcessorUI(QWidget):
             QMessageBox.warning(self, "Ошибка", "Неверный формат входного файла.")
             return
 
-        # Создание экземпляра ArithmeticProcessor
         processor = ArithmeticProcessor(input_file, output_file, input_format,
                                         'text')
 
@@ -431,7 +430,6 @@ class ArithmeticProcessorUI(QWidget):
                 with zipfile.ZipFile(input_file, 'r') as zip_ref:
                     zip_ref.extractall(temp_dir)
 
-                # Обрабатываем каждый извлечённый файл
                 for file_info in zip_ref.infolist():
                     extracted_file = os.path.join(temp_dir, file_info.filename)
                     if os.path.isfile(extracted_file):
